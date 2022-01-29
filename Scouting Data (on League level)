@@ -1,0 +1,103 @@
+library(worldfootballR)
+library(StatsBombR)
+library(tidyverse)
+
+countryx <- data.frame(c("ENG", "GER")) #chose the leagues you want
+
+leagueurls <- data.frame(matrix(ncol = 0, nrow = 0))
+
+for (x in 1:nrow(countryx)) {
+
+  leagueurl <- fb_league_urls(country = countryx[c(x),,], gender = "M", season_end_year = 2022, tier = '1st')
+  leagueurls <- rbind(leagueurls,leagueurl)
+}
+
+teamurls <- data.frame(matrix(ncol = 0, nrow = 0))
+
+for (x in 1:nrow(leagueurls)) {
+
+  teamurl <- data.frame(fb_teams_urls(leagueurls[c(x),,]))
+  teamurls <- rbind(teamurls,teamurl)
+}
+
+teamsconcat <- function(x) {gsub("-", " ", str_sub(substr(gsub('.*/', '/', teamurls[c(x),c(1),1]), 2, 50),1,nchar(substr(gsub('.*/', '/', teamurls[c(x),c(1),1]), 2, 50))-6))}
+
+teamnames <- data.frame(matrix(ncol = 0, nrow = 0))
+
+for (x in 1:nrow(teamurls)) {
+  teamname <- teamsconcat(x)
+  teamnames <- rbind(teamnames, teamname)
+}
+
+teamurls <- cbind(teamnames, teamurls)
+
+rm(teamnames, teamurl, countryx)
+
+teamurls = rename(teamurls, names = X.Manchester.City.)
+teamurls = rename(teamurls, urls = fb_teams_urls.leagueurls.c.x.......)
+
+playerurls <- data.frame(matrix(ncol = 0, nrow = 0))
+
+getplayerurls <- function(x) {fb_player_urls(paste(teamurls[c(x),c(2) ,1]))}
+
+getplayerurls <- Vectorize(getplayerurls)
+
+playerurls <- data.table::melt(getplayerurls(1:nrow(teamurls)))
+
+playersconcat <- function(x) {gsub("^.*/","", playerurls[c(x),1,1])}
+
+playernames <- function(x) {
+  playergoodnames <- playersconcat(x)
+  playermain <- sub("-", " ", playergoodnames)
+}
+
+playernamesdf <- data.frame(matrix(ncol = 0, nrow = 0))
+
+for (x in 1:nrow(playerurls)) {
+  playergoodnames <- playersconcat(x)
+  playermain <- sub("-", " ", playergoodnames)
+  playernamesdf <- rbind(playernamesdf, playermain)
+}
+
+playernamesdf = rename(playernamesdf, names = X.Ederson.)
+
+playerurls <- cbind(playernamesdf, playerurls)
+
+playerurls = rename(playerurls, urls = value)
+
+playerurls = rename(playerurls, Team = L1)
+
+rm(playernamesdf)
+
+for (x in 1:nrow(teamurls)) {
+  playerurls$Team[playerurls$Team == x] <- teamurls[c(x),1]
+}
+
+
+#grab all the scouting data, each player will have a data frame
+  scouts <- function(x)  {
+
+    getscouting <- function(x){fb_player_scouting_report(player_url = (paste(playerurls[x, c(1) ,1])),
+                                                         pos_versus = "primary") %>%
+        dplyr::filter(scouting_period == "Last 365 Days")} # edit the scouting period however you want
+
+    if(x %in% getscouting(x)) next
+
+    getscouting(x)}
+
+  for (x in 1:nrow(playerurls)){
+    tryCatch({
+      assign(paste("player", x, sep = ""), scouts(x))
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+  }
+
+  # merge all players into one data frame
+  allscout <- data.frame(matrix(ncol = 0, nrow = 0))
+
+  for (x in 1:nrow(playerurls)){
+    tryCatch({
+      z <- as.list(mget(paste("player", x, sep="")))
+      z <- bind_rows(z)
+      allscout <- rbind(allscout, z)
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+  }
