@@ -2,7 +2,7 @@ library(worldfootballR)
 library(StatsBombR)
 library(tidyverse)
 
-countryx <- data.frame(c("ENG", "GER")) #chose the leagues you want
+countryx <- data.frame(c("ENG")) #chose the leagues you want
 
 leagueurls <- data.frame(matrix(ncol = 0, nrow = 0))
 
@@ -91,6 +91,7 @@ for (x in 1:nrow(teamurls)) {
     }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
   }
 
+
   # merge all players into one data frame
   allscout <- data.frame(matrix(ncol = 0, nrow = 0))
 
@@ -101,3 +102,8 @@ for (x in 1:nrow(teamurls)) {
       allscout <- rbind(allscout, z)
     }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
   }
+
+  # remove player data frames if you want
+
+  rm(list=ls()[! ls() %in% c("teamurls","playerurls","allscout", "leagueurls")])
+
