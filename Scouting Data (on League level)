@@ -77,7 +77,7 @@ for (x in 1:nrow(teamurls)) {
 #grab all the scouting data, each player will have a data frame
   scouts <- function(x)  {
 
-    getscouting <- function(x){fb_player_scouting_report(player_url = (paste(playerurls[x, c(1) ,1])),
+    getscouting <- function(x){fb_player_scouting_report(player_url = (paste(playerurls[x, c(2) ,1])),
                                                          pos_versus = "primary") %>%
         dplyr::filter(scouting_period == "Last 365 Days")} # edit the scouting period however you want
 
